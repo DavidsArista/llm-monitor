@@ -1,54 +1,61 @@
-# LLM Monitor Dashboard
+# LLM Monitor
 
-A monitoring platform for tracking LLM API usage. Built to solve the problem of not knowing where your LLM costs are going or why your API is getting slow.
+A lightweight, self-hosted monitoring platform for tracking LLM API costs and performance. Built to solve observability gaps I encountered while working on SacGPT at the City of Sacramento.
 
-## The Problem
+## Quick Start
+```bash
+cat > README.md << 'EOF'
+# LLM Monitor
 
-When you're using GPT-4, Claude, or Gemini in production, you're basically flying blind. You get a bill at the end of the month and have no idea:
-- Which queries are expensive vs cheap
-- If your response times are getting worse
-- Whether GPT-4 is actually better than GPT-3.5 for your use case
-- Which team is burning through your API budget
+A lightweight, self-hosted monitoring platform for tracking LLM API costs and performance. Built to solve observability gaps I encountered while working on SacGPT at the City of Sacramento.
 
-## What It Does
-
-Logs every LLM API call and shows you:
-- Real-time cost breakdown
-- Latency tracking
-- Token usage per model
-- Which models are eating your budget
-
-The dashboard updates every 10 seconds so you can actually see what's happening.
-
-## Tech Stack
-
-**Backend:** FastAPI + PostgreSQL  
-**Frontend:** React + Recharts  
-**Why these:** Fast to build, easy to deploy, handles real-time data well
-
-## Getting Started
-
-Need Python 3.14+, Node 18+, and PostgreSQL.
+## Quick Start
 ```bash
 git clone https://github.com/DavidsArista/llm-monitor
 cd llm-monitor
-./setup.sh
+docker compose up
 ```
 
-The script handles database setup, installs dependencies, and launches everything.
+Visit http://localhost:3000
 
-To start after initial setup:
-```bash
-./run.sh    # starts backend + frontend
-./stop.sh   # stops everything
+That's it. Docker handles everything.
+
+## The Problem
+
+While building SacGPT (a RAG system serving 500+ city employees), we had zero visibility into our Gemini API usage. We didn't know:
+- Which queries were expensive vs cheap
+- If response times were degrading
+- Whether we could use cheaper models without sacrificing quality
+
+Existing tools like LangSmith ($2K+/month) were too expensive for a government budget.
+
+## What It Does
+
+- **Real-time Cost Tracking** - See exactly what each call costs
+- **Performance Monitoring** - Track latency across different models
+- **Model Comparison** - Compare GPT-4 vs Claude vs Gemini side-by-side
+- **Auto-refresh Dashboard** - Updates every 10 seconds
+
+## Comparison to Alternatives
+
+| Feature | LLM Monitor | LangSmith | Helicone |
+|---------|-------------|-----------|----------|
+| Cost | Free (self-hosted) | $2K+/month | $500+/month |
+| Setup | `docker compose up` | Complex setup | Medium setup |
+| Best For | Startups, Gov, Solo | Enterprise | Mid-market |
+
+## Architecture
+```
+Your App → POST /ingest → FastAPI → PostgreSQL
+                                  ↓
+                           React Dashboard
 ```
 
-Dashboard runs on `http://localhost:3000`
+**Performance Impact:** <10ms overhead on request path (async logging to database)
 
 ## API Usage
-
-Send LLM events to the monitoring system:
 ```bash
+# Log an LLM call
 curl -X POST http://localhost:8000/ingest \
   -H "Content-Type: application/json" \
   -d '{
@@ -58,47 +65,64 @@ curl -X POST http://localhost:8000/ingest \
     "latency_ms": 1234,
     "tokens_used": 150
   }'
-```
 
-Get stats:
-```bash
+# Get stats
 curl http://localhost:8000/stats
+
+# Get recent events
+curl http://localhost:8000/events?limit=20
 ```
 
-## Why I Built This
+## Real-World Use Case
 
-I'm working on SacGPT at the City of Sacramento - a RAG system that helps city employees search internal documents. We had no visibility into costs or performance, so I built this to track what was actually happening in production.
+At the City of Sacramento, identifying that 70% of SacGPT queries could use a cheaper model without quality loss could theoretically save ~30% in API costs.
 
-Turns out this is a common problem. Companies are spending tens of thousands per month on LLM APIs without knowing where the money goes.
+For a company making 1M calls/month at $0.03/call average, switching 70% of calls to a model that costs $0.003 saves ~$19K/month.
 
-## Project Structure
+## Tech Stack
+
+- **Backend:** FastAPI + PostgreSQL
+- **Frontend:** React + Recharts
+- **Infrastructure:** Docker Compose
+
+Chose these for fast iteration, easy deployment, and good time-series data handling.
+
+## Development
+
+To run locally without Docker:
+```bash
+# Start PostgreSQL
+createdb llm_monitor
+psql llm_monitor < schema.sql
+
+# Backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload
+
+# Frontend
+cd dashboard
+npm install
+npm start
 ```
-llm-monitor/
-├── main.py              # FastAPI backend
-├── test_load.py         # Generate test data
-├── dashboard/           # React frontend
-├── run.sh, stop.sh      # Convenience scripts
-└── requirements.txt
-```
 
-## What I Learned
+## What It Doesn't Do (Yet)
 
-- Building REST APIs that handle high-volume event ingestion
-- Real-time data visualization in React
-- Database design for time-series data
-- How to make monitoring actually useful (not just collecting data)
+- No distributed tracing (use OpenTelemetry for that)
+- No semantic caching
+- No alerting system
+- No PII masking
 
-## Next Steps
+These are on the roadmap but kept the MVP focused on core monitoring.
 
-Things I want to add:
-- Alerting when costs spike
-- A/B testing different models
-- Automatic switching to cheaper models for simple queries
-- Better cost attribution (by team, by feature, etc.)
+## Built By
 
-## About
+**David Arista**  
+CS @ UC Davis | AI/ML Intern @ City of Sacramento
 
-Built by David Arista  
-CS Student @ UC Davis | AI/ML Intern @ City of Sacramento
+Built during my internship to address real observability gaps in production LLM systems.
 
-Currently working on SacGPT and exploring how to make LLM systems more cost-effective and observable in production.
+## License
+
+MIT
