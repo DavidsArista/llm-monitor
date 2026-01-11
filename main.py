@@ -5,6 +5,7 @@ from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from typing import List, Optional
+import os
 
 # Initialize FastAPI app
 app = FastAPI(title="LLM Monitor API")
@@ -20,10 +21,10 @@ app.add_middleware(
 
 # Database connection details
 DB_CONFIG = {
-    "dbname": "llm_monitor",
-    "user": "davidarista",  # Your Mac username
-    "password": "",  # Usually empty for local PostgreSQL
-    "host": "localhost",
+    "dbname": os.getenv("POSTGRES_DB", "llm_monitor"),
+    "user": os.getenv("POSTGRES_USER", "postgres"),
+    "password": os.getenv("POSTGRES_PASSWORD", "postgres"),
+    "host": os.getenv("DB_HOST", "localhost"),
     "port": "5432"
 }
 

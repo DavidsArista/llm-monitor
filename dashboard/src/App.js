@@ -20,28 +20,30 @@ export default function App() {
   const [selectedModel, setSelectedModel] = useState("");
 
   // Fetch data from API
-  const fetchData = async () => {
-    try {
-      // Fetch events
-      const eventsUrl = selectedModel 
-        ? `http://localhost:8000/events?limit=20&model=${selectedModel}`
-        : `http://localhost:8000/events?limit=20`;
-      
-      const eventsRes = await fetch(eventsUrl);
-      const eventsData = await eventsRes.json();
-      
-      // Fetch stats
-      const statsRes = await fetch("http://localhost:8000/stats");
-      const statsData = await statsRes.json();
-      
-      setEvents(eventsData);
-      setStats(statsData);
-      setLoading(false);
-    } catch (error) {
-      console.error("Failed to fetch data:", error);
-      setLoading(false);
-    }
-  };
+const fetchData = async () => {
+  try {
+    // Fetch events
+    const eventsUrl = selectedModel 
+      ? `http://localhost:8000/events?limit=20&model=${selectedModel}`
+      : `http://localhost:8000/events?limit=20`;
+    
+    const eventsRes = await fetch(eventsUrl);
+    const eventsData = await eventsRes.json();
+    
+    // Fetch stats
+    const statsRes = await fetch("http://localhost:8000/stats");
+    const statsData = await statsRes.json();
+    
+    // FIX: Make sure eventsData is an array
+    setEvents(Array.isArray(eventsData) ? eventsData : []);
+    setStats(statsData);
+    setLoading(false);
+  } catch (error) {
+    console.error("Failed to fetch data:", error);
+    setEvents([]); // Set empty array on error
+    setLoading(false);
+  }
+};
 
   // Auto-refresh every 10 seconds
   useEffect(() => {
